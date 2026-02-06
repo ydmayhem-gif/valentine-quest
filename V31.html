@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Guava’s Flappy Love 🐱💚</title>
+
+<style>
+/* ------------------ RESET ------------------ */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; font-family: 'Courier New', monospace; overflow: hidden; }
+
+/* ------------------ BACKGROUND FILM REELS ------------------ */
+body {
+  background: #050508;
+  color: #e8ffe8;
+}
+
+.reels {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  overflow: hidden;
+}
+
+.reel {
+  position: absolute;
+  display: flex;
+  width: 200%;
+  opacity: 0.45;
+  filter: contrast(1.2) brightness(0.6);
+}
+
+.reel img {
+  width: 14.285%;
+  object-fit: cover;
+}
+
+.reel.one { top: 10%; transform: rotate(-3deg); animation: scrollL 60s linear infinite; }
+.reel.two { top: 45%; transform: rotate(2deg); animation: scrollR 80s linear infinite; }
+.reel.three { top: 75%; transform: rotate(-1deg); animation: scrollL 100s linear infinite; }
+
+@keyframes scrollL {
+  from { transform: translateX(0) rotate(-3deg); }
+  to { transform: translateX(-50%) rotate(-3deg); }
+}
+
+@keyframes scrollR {
+  from { transform: translateX(-50%) rotate(2deg); }
+  to { transform: translateX(0) rotate(2deg); }
+}
+
+/* ------------------ GLASS CARD ------------------ */
+.overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card {
+  width: min(90%, 420px);
+  padding: 30px;
+  border-radius: 20px;
+  background: rgba(20, 40, 30, 0.35);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(180, 255, 200, 0.25);
+  text-align: center;
+  box-shadow: 0 0 40px rgba(0,255,170,0.2);
+}
+
+h1 {
+  font-size: 26px;
+  margin-bottom: 10px;
+  text-shadow: 0 0 10px rgba(0,255,170,0.4);
+}
+
+p {
+  font-size: 14px;
+  opacity: 0.9;
+  margin-bottom: 20px;
+}
+
+button {
+  background: linear-gradient(135deg, #6affb3, #1ddf7a);
+  border: none;
+  padding: 12px 22px;
+  border-radius: 30px;
+  font-size: 14px;
+  cursor: pointer;
+  color: #033;
+  box-shadow: 0 0 20px rgba(0,255,170,0.4);
+}
+
+button:hover { transform: scale(1.05); }
+
+/* ------------------ GAME ------------------ */
+canvas {
+  display: none;
+  background: rgba(0,0,0,0.4);
+}
+
+/* ------------------ MODALS ------------------ */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.envelope {
+  width: 280px;
+  background: #0c241b;
+  border-radius: 16px;
+  padding: 20px;
+  animation: pop 0.6s ease;
+  box-shadow: 0 0 30px rgba(0,255,170,0.3);
+}
+
+@keyframes pop {
+  from { transform: scale(0.8); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.envelope p {
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+/* ------------------ FINAL QUESTION ------------------ */
+.final {
+  display: none;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.no-btn {
+  background: #444;
+  color: #fff;
+  position: relative;
+}
+
+/* ------------------ CONFETTI ------------------ */
+.confetti {
+  position: fixed;
+  width: 6px;
+  height: 6px;
+  background: #6affb3;
+  animation: fall 3s linear forwards;
+}
+
+@keyframes fall {
+  to { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
+</style>
+</head>
+
+<body>
+
+<!-- FILM REELS -->
+<div class="reels">
+  <div class="reel one">
+    <img src="img1.jpg"><img src="img2.jpg"><img src="img3.jpg"><img src="img4.jpg"><img src="img5.jpg"><img src="img6.jpg"><img src="img7.jpg">
+  </div>
+  <div class="reel two">
+    <img src="img4.jpg"><img src="img5.jpg"><img src="img6.jpg"><img src="img7.jpg"><img src="img1.jpg"><img src="img2.jpg"><img src="img3.jpg">
+  </div>
+  <div class="reel three">
+    <img src="img7.jpg"><img src="img6.jpg"><img src="img5.jpg"><img src="img4.jpg"><img src="img3.jpg"><img src="img2.jpg"><img src="img1.jpg">
+  </div>
+</div>
+
+<!-- START CARD -->
+<div class="overlay" id="startScreen">
+  <div class="card">
+    <h1>Guava’s Flappy Love 🐱💚</h1>
+    <p>Tap / Click / Space to fly</p>
+    <button onclick="startGame()">START GAME 🎮</button>
+  </div>
+</div>
+
+<canvas id="game"></canvas>
+
+<!-- LETTER MODAL -->
+<div class="modal" id="letterModal">
+  <div class="envelope">
+    <p id="letterText"></p>
+    <button onclick="closeLetter()">Next</button>
+  </div>
+</div>
+
+<!-- FINAL -->
+<div class="modal" id="finalModal">
+  <div class="envelope final">
+    <h2>Guava… 💚</h2>
+    <p>Will you be my Valentine?</p>
+    <div class="buttons">
+      <button onclick="yes()">YES 🌿</button>
+      <button class="no-btn" id="noBtn" onclick="nope()">NO 🙈</button>
+    </div>
+  </div>
+</div>
+
+<audio id="bgm" src="music.mp3" loop></audio>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let catY, vel, pipes, score, playing;
+let rewardStep = 0;
+
+function startGame() {
+  document.getElementById("startScreen").style.display = "none";
+  canvas.style.display = "block";
+  document.getElementById("bgm").play();
+  reset();
+  loop();
+}
+
+function reset() {
+  catY = canvas.height/2;
+  vel = 0;
+  pipes = [];
+  score = 0;
+  playing = true;
+}
+
+function jump() { vel = -5; }
+
+document.addEventListener("keydown", e => e.code==="Space" && jump());
+document.addEventListener("click", jump);
+document.addEventListener("touchstart", jump);
+
+function loop() {
+  if(!playing) return;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  vel += 0.3;
+  catY += vel;
+
+  ctx.font = "40px serif";
+  ctx.fillText("🐱", 80, catY);
+
+  if(pipes.length===0 || pipes[pipes.length-1].x < canvas.width-300) {
+    pipes.push({x: canvas.width, gap: 220, top: Math.random()*200+100});
+  }
+
+  pipes.forEach(p=>{
+    p.x -= 2;
+    ctx.fillStyle="#6affb3";
+    ctx.fillRect(p.x,0,50,p.top);
+    ctx.fillRect(p.x,p.top+p.gap,50,canvas.height);
+    if(p.x===80) score++;
+  });
+
+  pipes = pipes.filter(p=>p.x>-60);
+
+  if(score===5 && rewardStep===0) showLetter("I didn’t make this to impress you… I made it because thinking about you makes me want to create things. 💚");
+  if(score===10 && rewardStep===1) showLetter("There’s something waiting at the end of this little game… something just for you. 🐱✨");
+  if(score===15 && rewardStep===2) showFinal();
+
+  requestAnimationFrame(loop);
+}
+
+function showLetter(text) {
+  playing = false;
+  rewardStep++;
+  document.getElementById("letterText").innerText = text;
+  document.getElementById("letterModal").style.display = "flex";
+}
+
+function closeLetter() {
+  document.getElementById("letterModal").style.display = "none";
+  playing = true;
+  loop();
+}
+
+function showFinal() {
+  playing = false;
+  document.getElementById("finalModal").style.display = "flex";
+  document.querySelector(".final").style.display = "flex";
+}
+
+function yes() {
+  for(let i=0;i<80;i++){
+    const c=document.createElement("div");
+    c.className="confetti";
+    c.style.left=Math.random()*100+"vw";
+    c.style.top="-10px";
+    document.body.appendChild(c);
+  }
+  alert("You just made this cat very, very happy 🐱💚");
+}
+
+function nope() {
+  const btn = document.getElementById("noBtn");
+  btn.style.transform = `translate(${Math.random()*100-50}px, ${Math.random()*60-30}px)`;
+  btn.innerText = ["Are you sure?", "Try again 🙈", "Heh nope", "That’s illegal 😼"][Math.floor(Math.random()*4)];
+}
+</script>
+
+</body>
+</html>
